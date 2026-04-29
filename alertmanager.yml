@@ -1,0 +1,42 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@example.com'
+  smtp_auth_username: 'alerts@example.com'
+  smtp_auth_password: 'CHANGE_ME'
+  slack_api_url: 'https://hooks.slack.com/services/CHANGE/ME'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 30m
+  receiver: 'default'
+  routes:
+    - matchers:
+        - severity="critical"
+      receiver: 'critical-email-slack'
+    - matchers:
+        - severity="warning"
+      receiver: 'warning-slack'
+
+receivers:
+- name: 'default'
+- name: 'warning-slack'
+  slack_configs:
+    - channel: '#alert'
+      send_resolved: true
+      title: '[WARNING] {{ .CommonLabels.alertname }}'
+      text: '{{ .CommonAnnotations.summary }} - {{ .CommonAnnotations.description }}'
+- name: 'critical-email-slack'
+  email_configs:
+    - to: 'oncall@example.com'
+      send_resolved: true
+      headers:
+        subject: '[CRITICAL] {{ .CommonLabels.alertname }}'
+      html: '<b>{{ .CommonAnnotations.summary }}</b><br/>{{ .CommonAnnotations.description }}'
+  slack_configs:
+    - channel: '#alert'
+      send_resolved: true
+      title: '[CRITICAL] {{ .CommonLabels.alertname }}'
+      text: '{{ .CommonAnnotations.summary }} - {{ .CommonAnnotations.description }}'
